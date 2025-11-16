@@ -1,0 +1,34 @@
+{
+	"schemaVersion": 1,
+	"id": "negotiable",
+	"version": "${version}",
+	"name": "Negotiable",
+  "description": "Villager emerald trade negotiation system.",
+  "authors": [
+    "CSS"
+  ],
+  "contact": {},
+  "license": "STORM IT-1",
+	"icon": "assets/negotiable/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"com.css.negotiable.Negotiable"
+    ],
+    "client": [
+      "com.css.negotiable.NegotiableClient"
+    ]
+	},
+	"mixins": [
+		"negotiable.mixins.json"
+	],
+	"depends": {
+		"fabricloader": ">=0.17.3",
+		"minecraft": "~1.20.1",
+		"java": ">=17",
+		"fabric-api": "*"
+	},
+	"suggests": {
+		"another-mod": "*"
+	}
+}

@@ -1,0 +1,6 @@
+{
+  "gui.negotiable.negotiate": "Negotiate",
+  "gui.negotiable.price": "Offer (emeralds)",
+  "gui.negotiable.frustration": "Frustration",
+  "item.negotiable.negotiable": "Negotiation Token"
+}
