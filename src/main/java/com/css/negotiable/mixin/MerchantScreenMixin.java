@@ -36,20 +36,33 @@ public abstract class MerchantScreenMixin
         extends HandledScreen<MerchantScreenHandler>
         implements MerchantScreenNegotiation {
 
-    @Shadow private int selectedIndex;
+    @Shadow
+    private int selectedIndex;
 
-    @Unique private TextFieldWidget negotiable$priceField;
-    @Unique private ButtonWidget negotiable$button;
+    @Shadow
+    protected abstract void syncRecipeIndex();
 
-    @Unique private int negotiable$selectedIndex = -1;
-    @Unique private int negotiable$currentTemper = -1; // -1 = unknown
+    @Unique
+    private TextFieldWidget negotiable$priceField;
+    @Unique
+    private ButtonWidget negotiable$button;
 
-    @Unique private int negotiable$panelX;
-    @Unique private int negotiable$panelY;
-    @Unique private int negotiable$panelWidth;
-    @Unique private int negotiable$panelHeight;
+    @Unique
+    private int negotiable$selectedIndex = -1;
+    @Unique
+    private int negotiable$currentTemper = -1; // -1 = unknown
 
-    @Unique private boolean negotiable$acceptedForCurrentTrade = false;
+    @Unique
+    private int negotiable$panelX;
+    @Unique
+    private int negotiable$panelY;
+    @Unique
+    private int negotiable$panelWidth;
+    @Unique
+    private int negotiable$panelHeight;
+
+    @Unique
+    private boolean negotiable$acceptedForCurrentTrade = false;
 
     protected MerchantScreenMixin(MerchantScreenHandler handler,
                                   PlayerInventory inventory,
@@ -59,15 +72,12 @@ public abstract class MerchantScreenMixin
 
     @Inject(method = "init", at = @At("TAIL"))
     private void negotiable$init(CallbackInfo ci) {
-        // Panel size: slightly thinner, a bit taller
         this.negotiable$panelWidth = 100;
         this.negotiable$panelHeight = 160;
 
-        // Start just to the right of the vanilla background
         int panelX = this.x + this.backgroundWidth + 4;
         int panelY = this.y + 8;
 
-        // Clamp so it does not go off the right edge of the window
         if (panelX + this.negotiable$panelWidth > this.width - 4) {
             panelX = this.width - 4 - this.negotiable$panelWidth;
         }
@@ -75,7 +85,6 @@ public abstract class MerchantScreenMixin
         this.negotiable$panelX = panelX;
         this.negotiable$panelY = panelY;
 
-        // Text field (shifted down to avoid overlap)
         this.negotiable$priceField = new TextFieldWidget(
                 this.textRenderer,
                 panelX + 6,
@@ -87,7 +96,6 @@ public abstract class MerchantScreenMixin
         this.negotiable$priceField.setMaxLength(4);
         this.negotiable$priceField.setText("0");
 
-        // Negotiate button
         this.negotiable$button = ButtonWidget
                 .builder(Text.literal("Negotiate"), button -> this.negotiable$onPress())
                 .dimensions(panelX + 6, panelY + 82, 88, 20)
@@ -130,10 +138,10 @@ public abstract class MerchantScreenMixin
 
         int panelX = this.negotiable$panelX;
         int panelY = this.negotiable$panelY;
-        int panelWidth  = this.negotiable$panelWidth;
+        int panelWidth = this.negotiable$panelWidth;
         int panelHeight = this.negotiable$panelHeight;
 
-        // Panel background + border
+        // Background panel
         context.fill(panelX, panelY, panelX + panelWidth, panelY + panelHeight, 0xAA000000);
         context.drawBorder(panelX, panelY, panelWidth, panelHeight, 0xFFFFFFFF);
 
@@ -141,7 +149,7 @@ public abstract class MerchantScreenMixin
         context.drawText(this.textRenderer, Text.literal("Negotiation"),
                 panelX + 6, panelY + 4, 0xFFFFFF, false);
 
-        // Current offer
+        // Determine current offer (if any)
         TradeOffer currentOffer = null;
         if (this.negotiable$selectedIndex >= 0) {
             List<TradeOffer> offers = this.handler.getRecipes();
@@ -152,9 +160,8 @@ public abstract class MerchantScreenMixin
 
         boolean nonNegotiable = false;
 
-        // Item / NON-NEGOTIABLE display
+        // Item display or NON-NEGOTIABLE
         if (currentOffer != null) {
-            // If first buy item is not emeralds, treat as non-negotiable
             if (currentOffer.getOriginalFirstBuyItem().getItem() != Items.EMERALD) {
                 nonNegotiable = true;
 
@@ -167,11 +174,10 @@ public abstract class MerchantScreenMixin
                         Text.literal("NON-NEGOTIABLE"),
                         panelX + 26,
                         panelY + 22,
-                        0xFF5555, // red-ish
+                        0xFF5555,
                         false
                 );
             } else {
-                // Normal negotiable trade: show actual item icon and name
                 ItemStack sellStack = currentOffer.getSellItem();
                 if (sellStack.isEmpty()) {
                     sellStack = currentOffer.getOriginalFirstBuyItem();
@@ -192,12 +198,11 @@ public abstract class MerchantScreenMixin
                 );
             }
         } else {
-            // No trade selected; simple message
             context.drawText(this.textRenderer, Text.literal("No trade selected"),
                     panelX + 6, panelY + 22, 0xA0A0A0, false);
         }
 
-        // Trade # label (moved down so it doesn't overlap "Offer")
+        // Trade label
         String tradeLabel;
         if (this.negotiable$selectedIndex >= 0) {
             tradeLabel = "Trade #" + (this.negotiable$selectedIndex + 1);
@@ -207,7 +212,7 @@ public abstract class MerchantScreenMixin
         context.drawText(this.textRenderer, Text.literal(tradeLabel),
                 panelX + 6, panelY + 38, 0xA0A0A0, false);
 
-        // Offer input label + background
+        // Offer box
         int slotX = panelX + 4;
         int slotY = panelY + 52;
         int slotW = 76;
@@ -219,7 +224,7 @@ public abstract class MerchantScreenMixin
         context.fill(slotX, slotY, slotX + slotW, slotY + slotH, 0xFF303030);
         context.drawBorder(slotX, slotY, slotW, slotH, 0xFF808080);
 
-        // Frustration bar (moved down so it's fully visible)
+        // Frustration bar
         int barX = panelX + 6;
         int barY = panelY + 130;
         int barWidth = panelWidth - 12;
@@ -247,17 +252,15 @@ public abstract class MerchantScreenMixin
             context.fill(barX, barY, barX + filled, barY + barHeight, color);
         }
 
-        // Button + field state
+        // Button enable/disable logic
         if (this.negotiable$button != null && this.negotiable$priceField != null) {
             if (this.negotiable$acceptedForCurrentTrade) {
                 this.negotiable$button.active = false;
                 this.negotiable$priceField.setEditable(false);
             } else if (nonNegotiable || currentOffer == null) {
-                // Non-negotiable trades
                 this.negotiable$button.active = false;
                 this.negotiable$priceField.setEditable(false);
             } else {
-                // Negotiable trades – enable field, compute button active by price
                 this.negotiable$priceField.setEditable(true);
 
                 boolean active = this.negotiable$selectedIndex >= 0;
@@ -377,6 +380,35 @@ public abstract class MerchantScreenMixin
 
         if (accepted) {
             this.negotiable$acceptedForCurrentTrade = true;
+
+            try {
+                List<TradeOffer> offers = this.handler.getRecipes();
+                int offerIndex = this.negotiable$selectedIndex;
+
+                if (offerIndex >= 0 && offerIndex < offers.size()) {
+                    TradeOffer offer = offers.get(offerIndex);
+
+                    int oldSpecial = offer.getSpecialPrice();
+                    int bestSpecial = oldSpecial;
+
+                    for (int s = -64; s <= 64; s++) {
+                        offer.setSpecialPrice(s);
+                        int adjusted = offer.getAdjustedFirstBuyItem().getCount();
+                        if (adjusted == price) {
+                            bestSpecial = s;
+                            break;
+                        }
+                    }
+
+                    offer.setSpecialPrice(bestSpecial);
+
+                    this.selectedIndex = offerIndex;
+                    this.syncRecipeIndex();
+                }
+            } catch (Exception e) {
+                Negotiable.LOGGER.error("[CLIENT] Failed to apply negotiated price client-side", e);
+            }
+
             if (this.negotiable$button != null) {
                 this.negotiable$button.active = false;
             }

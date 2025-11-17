@@ -22,6 +22,9 @@ import net.minecraft.util.Identifier;
 import net.minecraft.village.Merchant;
 import net.minecraft.village.TradeOffer;
 import net.minecraft.world.World;
+import net.minecraft.client.gui.screen.ingame.MerchantScreen;
+import com.css.negotiable.MerchantScreenNegotiation;
+import net.minecraft.client.gui.screen.Screen;
 
 public final class NegotiationPackets {
 
@@ -104,46 +107,45 @@ public final class NegotiationPackets {
         );
     }
 
-    @Environment(EnvType.CLIENT)
-    public static void registerS2C() {
-        ClientPlayNetworking.registerGlobalReceiver(
-                NEGOTIATE_RESULT_S2C,
-                (client, handler, buf, responseSender) -> {
-                    boolean accepted = buf.readBoolean();
-                    int entityId = buf.readInt();
-                    int offerIndex = buf.readVarInt();
-                    int price = buf.readVarInt();
-                    int temper = buf.readVarInt();
+  @Environment(EnvType.CLIENT)
+public static void registerS2C() {
+    ClientPlayNetworking.registerGlobalReceiver(
+        NEGOTIATE_RESULT_S2C,
+        (client, handler, buf, responseSender) -> {
+            boolean accepted = buf.readBoolean();
+            int entityId    = buf.readInt();
+            int offerIndex  = buf.readVarInt();
+            int price       = buf.readVarInt();
+            int temper      = buf.readVarInt();
 
-                    client.execute(() -> {
-                        Negotiable.LOGGER.info(
-                                "[Negotiable] S2C result: accepted={}, entityId={}, offerIndex={}, price={}, temper={}",
-                                accepted, entityId, offerIndex, price, temper
-                        );
+            client.execute(() -> {
+                Negotiable.LOGGER.info(
+                    "[Negotiable] S2C result: accepted={}, entityId={}, offerIndex={}, price={}, temper={}",
+                    accepted, entityId, offerIndex, price, temper
+                );
 
-                        if (client.player != null) {
-                            client.player.sendMessage(
-                                    Text.literal(
-                                            "[Negotiable] result: " + (accepted ? "accepted" : "rejected")
-                                                    + " price=" + price + " temper=" + temper
-                                    ),
-                                    false
-                            );
-                        }
-
-                        Screen current = MinecraftClient.getInstance().currentScreen;
-                        if (current instanceof MerchantScreen screen &&
-                                screen instanceof MerchantScreenNegotiation negotiation) {
-                            negotiation.negotiable$onNegotiationResult(
-                                    accepted,
-                                    price,
-                                    temper
-                            );
-                        }
-                    });
+                if (client.player != null) {
+                    client.player.sendMessage(
+                        Text.literal("[Negotiable] result: " + (accepted ? "accepted" : "rejected")
+                                + " price=" + price + " temper=" + temper),
+                        false
+                    );
                 }
-        );
-    }
+
+                Screen current = MinecraftClient.getInstance().currentScreen;
+                if (current instanceof MerchantScreen screen &&
+                    screen instanceof MerchantScreenNegotiation negotiation) {
+
+                    negotiation.negotiable$onNegotiationResult(
+                        accepted,
+                        price,
+                        temper
+                    );
+                }
+            });
+        }
+    );
+}
 
     @Environment(EnvType.CLIENT)
     public static void sendNegotiate(int entityId, int offerIndex, int offeredPrice) {
